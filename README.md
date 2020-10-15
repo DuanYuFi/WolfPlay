@@ -1,6 +1,8 @@
 # flower
 
-## Project setup
+## frontend
+
+### Project setup
 ```
 npm install
 ```
@@ -22,3 +24,14 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+## backend
+
+### Project start
+```
+python3 manage.py runserver 0.0.0.0:8000
+```
+or
+```
+python3 manage.py runserver [host[:port]]
+```
