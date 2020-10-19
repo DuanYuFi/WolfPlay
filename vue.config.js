@@ -32,7 +32,7 @@ module.exports = {
       //   changeOrigin: true,
       // },
       [process.env.VUE_APP_BASE_API]:{
-        target: 'http://10.21.181.65:8000/',
+        target: 'http://10.21.142.235:8001/',
         changeOrigin: true,
       },
     }

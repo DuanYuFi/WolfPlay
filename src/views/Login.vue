@@ -83,7 +83,7 @@ export default {
           (v) => !!v || "请输入用户名",
           (v) => (v && v.length >= 3) || "用户名长度必须大于2",
           (v) => (v && v.length <= 16) || "用户名长度必须小于等于16",
-          (v) => /^[a-zA-Z0-9_-]{3,16}$/.test(v) || "非法用户名",
+          (v) => /[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(v) || "非法用户名",
         ],
         passwordRules: [
           (v) => !!v || "请输入密码",
@@ -105,7 +105,7 @@ export default {
         res
           .then((code) => {
             console.log(code);
-            alert("登陆成功!");
+            // alert("登陆成功!");
             this.$router.push({ name: "Home" });
           })
           .catch((error) => {

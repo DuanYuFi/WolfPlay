@@ -24,10 +24,10 @@ export const register = (data) => {
   })
 }
 
-export const check = (data) => {
+export const logout = (data) => {
   return service({
-    url: '/user/register/check',
+    url: '/user/logout/',
     method: 'post',
-    data: data
+    data: JSON.stringify(data)
   })
 }

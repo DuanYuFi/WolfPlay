@@ -35,8 +35,7 @@ def Login(request):
     userInfo['username'] = post['username']
     userInfo['IsAdmin'] = False
     try:
-        checkUser = User.objects.filter(name=post['username'])
-        checkUser = checkUser.get()
+        checkUser = User.objects.filter(name=post['username'])[0]
     except:
         responseData['userInfo'] = None
         responseData['code'] = -1
@@ -44,15 +43,34 @@ def Login(request):
         responseData['expiresAt'] = ""
         responseData['msg'] = "用户名或密码错误"
         return HttpResponse(json.dumps(responseData))
+    
+    checkUser.isLogin = True
+    checkUser.save()
     if checkUser.password != post['password']:
         responseData['code']=1
         responseData['userInfo']=None
         responseData['msg'] = "用户名或密码错误"
         return HttpResponse(json.dumps(responseData))
     else:
-        userInfo['email']=checkUser.e_mail
+        userInfo['uuid'] = str(checkUser.id)
+        userInfo['email'] = checkUser.e_mail
         responseData['userInfo']=userInfo
         responseData['token']="asdasdasd"
         responseData['expiresAt']="2020/10/16"
         responseData['code']=0
         return HttpResponse(json.dumps(responseData))
+
+def Logout(request):
+    post = json.loads(request.body.decode('utf-8'))
+    post = json.loads(post)
+    # print(post)
+    checkUser = User.objects.filter(name = post['username'])[0]
+
+    checkUser.isLogin = False
+    checkUser.save()
+
+    responseData = {}
+    responseData['code'] = 0
+    responseData['msg'] = "OK"
+
+    return HttpResponse(json.dumps(responseData))

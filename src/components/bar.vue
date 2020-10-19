@@ -18,7 +18,7 @@
             <v-icon>mdi-dots-vertical</v-icon>
           </v-btn>
         </template>
-        <v-list min-height="40px" min-width="400px">
+        <v-list min-height="40px" min-width="200px">
           <v-list-item v-for="(item, i) in items" :key="i" link>
             <v-list-item-title>{{ item.title }}</v-list-item-title>
           </v-list-item>
@@ -29,16 +29,12 @@
     <v-navigation-drawer v-model="drawer" absolute bottom temporary app>
       <v-list nav dense>
         <v-list-item-group v-model="group">
-          <v-list-item>
+          <v-list-item @click="jumpPage('/')">
             <v-list-item-title>游戏</v-list-item-title>
           </v-list-item>
 
-          <v-list-item>
+          <v-list-item @click="jumpPage('/')">
             <v-list-item-title>好友</v-list-item-title>
-          </v-list-item>
-
-          <v-list-item>
-            <v-list-item-title>个人资料</v-list-item-title>
           </v-list-item>
 
           <v-list-item>
@@ -47,23 +43,21 @@
         </v-list-item-group>
       </v-list>
       <template v-slot:append>
-        <div v-if="userInfo.username.length === 0" >
-            <div class="pa-2">
+        <div v-if="userInfo.username.length === 0">
+          <div class="pa-2">
             <v-btn block to="/register"> 注册 </v-btn>
-            </div>
-            <div class="pa-2">
+          </div>
+          <div class="pa-2">
             <v-btn block to="/login"> 登录 </v-btn>
-            </div>
+          </div>
         </div>
         <div v-else>
-            <div class="pa-2">
-            <v-btn block> 个人信息 </v-btn>
-            </div>
-            <div class="pa-2">
-            <v-btn block
-                @click = "LoginOut"
-            > 登出 </v-btn>
-            </div>
+          <div class="pa-2">
+            <v-btn block to="/profile"> 个人信息 </v-btn>
+          </div>
+          <div class="pa-2">
+            <v-btn block @click="logOut"> 登出 </v-btn>
+          </div>
         </div>
       </template>
     </v-navigation-drawer>
@@ -81,7 +75,7 @@ export default {
     group: null,
     search: false,
     isLoggedIn: false,
-    items: [{ title: "关于" }, { title: "帮助" }, { title: "捐款" }],
+    items: [{ title: "关于" }, { title: "捐款" }],
   }),
   computed: {
     ...mapGetters("user", ["userInfo", "token"]),
@@ -95,6 +89,16 @@ export default {
     ...mapActions("user", ["LoginOut"]),
     isHome(route) {
       return route.name === "home";
+    },
+    jumpPage(route) {
+      if (this.userInfo.name.length === 0) {
+        route = "/login";
+      }
+      this.$router.push({ path: route });
+    },
+    logOut() {
+      console.log(this.userInfo);
+      this.LoginOut(this.userInfo);
     },
   },
 };

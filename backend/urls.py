@@ -15,11 +15,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from play.views import Register, Login
+from play.views import Register, Login, Logout
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     #path('play/', include('play.urls')),
-    path('api/v1/user/register/', Register, name = "Register"),
-    path('api/v1/user/login/', Login, name = "Login")
+    path('api/v1/user/register/', Register, name="Register"),
+    path('api/v1/user/login/', Login, name="Login"),
+    path('api/v1/user/logout/', Logout, name="Logout")
 ]

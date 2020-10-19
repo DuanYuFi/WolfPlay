@@ -1,4 +1,4 @@
-import { login } from '@/api/user'
+import { login, logout } from '@/api/user'
 import router from '@/router/index'
 
 export const user = {
@@ -8,7 +8,8 @@ export const user = {
       // uuid: '',
       username: '',
       email: '',
-      IsAdmin: false
+      IsAdmin: false,
+      uuid: '',
     },
     token: '',
     expiresAt: ''
@@ -52,7 +53,7 @@ export const user = {
   actions: {
     async LoginIn({ commit }, loginInfo) {
       const res = await login(loginInfo)
-      console.log(res);
+      // console.log(res);
       commit('setUserInfo', res.userInfo)
       commit('setToken', res.token)
       commit('setExpiresAt', res.expiresAt)
@@ -68,8 +69,14 @@ export const user = {
         return res.code
       }
     },
-    async LoginOut({ commit }) {
+    async LoginOut({ commit }, logoutInfo) {
+      const res = await logout(logoutInfo);
+      console.log(res)
       commit('LoginOut');
+      if (res.code === 0) {
+        router.push({ name: 'Home' })
+      }
+      return res.code
     }
   },
   getters: {
