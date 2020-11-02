@@ -31,3 +31,27 @@ export const logout = (data) => {
     data: JSON.stringify(data)
   })
 }
+
+export const createRoom = (data) => {
+  return service({
+    url: '/chat/createroom/',
+    method: 'post',
+    data: JSON.stringify(data)
+  })
+}
+
+export const joinRoom = (data) => {
+  return service({
+    url: '/chat/joinroom/',
+    method: 'post',
+    data: JSON.stringify(data)
+  })
+}
+
+export const leaveRoom = (data) => {
+  return service({
+    url: '/chat/leaveroom/',
+    method: 'post',
+    data: JSON.stringify(data)
+  })
+}

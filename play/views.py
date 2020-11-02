@@ -1,7 +1,10 @@
+# pylint: disable=no-member
+
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 import json
-from play.models import User
+from play.models import User, Room
+import time
 
 # Create your views here.
 
@@ -73,4 +76,21 @@ def Logout(request):
     responseData['code'] = 0
     responseData['msg'] = "OK"
 
+    return HttpResponse(json.dumps(responseData))
+
+def test(request):
+    post = json.loads(request.body.decode('utf-8'))
+    post = json.loads(post)
+    responseData = {}
+    if len(User.objects.filter(name = post['name'])) == 0:
+        responseData['data'] = None
+        responseData['code'] = 0
+    else:
+        thisUser = User.objects.filter(name = post['name'])[0]
+        data = {}
+        data['name'] = thisUser.name
+        data['email'] = thisUser.e_mail
+        data['password'] = thisUser.password
+        responseData['data'] = data
+        responseData['code'] = 0
     return HttpResponse(json.dumps(responseData))

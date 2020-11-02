@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'play',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -71,7 +72,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
+ASGI_APPLICATION = 'backend.routing.application'
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+           # "hosts": [(os.getenv('REDIS_SERVER_HOST', '10.21.142.235'), int(os.getenv('REDIS_SERVER_PORT', '6379')))],
+            "hosts": [('10.21.142.235', 6379)],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases

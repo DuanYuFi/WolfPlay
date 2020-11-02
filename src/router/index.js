@@ -49,6 +49,12 @@ const routes = [
         meta: { title: 'IloveYou' }
     },
     {
+        path: '/chat',
+        name: 'chat',
+        component: () => import('@/views/chat/chat.vue'),
+        meta: { title: 'Chat' }
+    },
+    {
         path: '/404',
         name: '404',
         component: () => import('@/views/404.vue'),

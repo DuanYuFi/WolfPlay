@@ -15,12 +15,22 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from play.views import Register, Login, Logout
+from play.views import Register, Login, Logout, test
+from play.chats import sendMessage, getRoomMembers, createRoom, joinRoom, leaveRoom
+
+base_URL = 'api/v1/'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     #path('play/', include('play.urls')),
-    path('api/v1/user/register/', Register, name="Register"),
-    path('api/v1/user/login/', Login, name="Login"),
-    path('api/v1/user/logout/', Logout, name="Logout")
+    path('%suser/register/' % base_URL, Register, name="Register"),
+    path('%suser/login/' % base_URL, Login, name="Login"),
+    path('%suser/logout/' % base_URL, Logout, name="Logout"),
+    path('%suser/test/' % base_URL, test, name = "test"),
+    path('%schat/sendmessage/' % base_URL, sendMessage, name = "sendMessage"),
+    path('%schat/getroommembers/' % base_URL, getRoomMembers, name = "getRoomMembers"),
+    path('%schat/createroom/' % base_URL, createRoom, name = "createRoom"),
+    path('%schat/joinroom/' % base_URL, joinRoom, name = "joinRoom"),
+    path('%schat/leaveroom/' % base_URL, leaveRoom, name = "leaveRoom")
+
 ]
