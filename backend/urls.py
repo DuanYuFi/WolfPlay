@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from play.views import Register, Login, Logout, test
-from play.chats import sendMessage, getRoomMembers, createRoom, joinRoom, leaveRoom
+from play.chats import sendMessage, getRoomMembers, createRoom, joinRoom, leaveRoom, startGame
 
 base_URL = 'api/v1/'
 
@@ -31,6 +31,7 @@ urlpatterns = [
     path('%schat/getroommembers/' % base_URL, getRoomMembers, name = "getRoomMembers"),
     path('%schat/createroom/' % base_URL, createRoom, name = "createRoom"),
     path('%schat/joinroom/' % base_URL, joinRoom, name = "joinRoom"),
-    path('%schat/leaveroom/' % base_URL, leaveRoom, name = "leaveRoom")
+    path('%schat/leaveroom/' % base_URL, leaveRoom, name = "leaveRoom"),
+    path('%sgame/start/' % base_URL, startGame, name = "startGame")
 
 ]

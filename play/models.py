@@ -23,3 +23,13 @@ class Room(models.Model):
     host = models.UUIDField(default = uuid.UUID('00000000-0000-0000-0000-000000000000'))
     members = models.TextField(default = '[]')
     chats = models.TextField(default = '[]')
+
+class Game(models.Model):
+    name = models.CharField(primary_key=True, default = "", max_length= 60, editable=True)
+    wolf_choices = models.TextField(default='{}')
+    witch_choice = models.CharField(max_length= 60, default='')
+    prophet_choice = models.CharField(max_length= 60, default='')
+    hunter_choice = models.CharField(max_length= 60, default='')
+    witchPoison = models.IntegerField(default=1)
+    witchAntidote = models.IntegerField(default=1)
+    vote = models.TextField(default='{}')

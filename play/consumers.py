@@ -2,6 +2,7 @@ from channels.generic.websocket import WebsocketConsumer
 from channels.exceptions import StopConsumer
 import json
 from asgiref.sync import async_to_sync
+import play.game
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -12,18 +13,22 @@ class ChatConsumer(WebsocketConsumer):
             text_data {
                 content: processedData string,
                 user: username string,
+                type: MessageType string,
             }
         '''
+        # print(self.room_group_name)
         data = json.loads(text_data)
-        data['type'] = 'normal-content'
-        print("In comsumer.receive")
-        print(data)
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name, 
-            {
-            'type': 'sendMessage', 
-            'message': data
-        })
+        if data['type'] == 'normal-content' or data['type'] == 'newLogin' or data['type'] == 'Logout':
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name, 
+                {
+                'type': 'sendMessage', 
+                'message': data
+            })
+
+        elif data['type'] == 'game-control':
+            play.game.processData(data['data'], self.roomname)
+        
     
     def sendMessage(self, event):
         self.send(json.dumps(event['message']))

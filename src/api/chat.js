@@ -15,3 +15,19 @@ export const loadChat = (data) => {
         data: JSON.stringify(data)
     })
 }
+
+export const getRoomMembers = (data) => {
+    return service({
+        url: '/chat/getroommembers/',
+        method: "post",
+        data: JSON.stringify(data)
+    })
+}
+
+export const gameStart = (data) => {
+    return service({
+        url: '/game/start/',
+        method: 'post',
+        data: JSON.stringify(data)
+    })
+}

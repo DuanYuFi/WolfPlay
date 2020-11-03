@@ -3,7 +3,7 @@
     <div v-if="userInfo.username.length === 0">
       <div class="home">
         <h1>Welcome to WolfPlay</h1>
-        <h1>Coming soon...</h1>
+        <h1>Login Please</h1>
       </div>
     </div>
     <div v-else>
@@ -23,6 +23,18 @@
                     name="room"
                     prepend-icon="mdi-account"
                     type="text"
+                    :rules="rules.roomnameRules"
+                  />
+                  <v-text-field
+                    id="password"
+                    label="密码"
+                    name="password"
+                    prepend-icon="mdi-lock"
+                    v-model="roomPassword"
+                    :rules="rules.passwordRules"
+                    :append-icon="show ? 'mdi-eye' : 'mdi-eye-off'"
+                    :type="show ? 'text' : 'password'"
+                    @click:append="show = !show"
                   />
                 </v-form>
               </v-card-text>
@@ -51,8 +63,18 @@ export default {
       roomName: "",
       errorMsg: "",
       invalid: false,
+      show: false,
+      roomPassword: "",
+      rules: {
+        roomnameRules: [
+          (v) => !!v || "请输入房间名",
+          (v) => /[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(v) || "非法用户名",
+        ],
+        passwordRules: [(v) => /^[a-zA-Z0-9_-]{0,16}$/.test(v) || "非法密码"],
+      },
     };
   },
+
   computed: {
     ...mapGetters("user", ["userInfo"]),
   },
@@ -63,6 +85,7 @@ export default {
       if (this.roomName.length !== 0) {
         var submitData = {};
         submitData.name = this.roomName;
+        submitData.password = this.roomPassword;
         submitData.username = this.userInfo.username;
         const res = this.newRoom(submitData);
         console.log(res);
@@ -81,6 +104,7 @@ export default {
       if (this.roomName.length !== 0) {
         var submitData = {};
         submitData.name = this.roomName;
+        submitData.password = this.roomPassword;
         submitData.username = this.userInfo.username;
         const res = this.joinRoomIn(submitData);
         console.log(res);

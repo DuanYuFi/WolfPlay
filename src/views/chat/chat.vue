@@ -5,20 +5,22 @@
         {{ text }}
       </v-snackbar>
     </div>
-    <v-card>
-      <v-navigation-drawer absolute permanent left>
-        <template v-slot:prepend>
-          <v-list-item>
-            <v-list-item-content>
-              <v-list-item-title>Online Users</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-        </template>
-        <v-divider></v-divider>
-      </v-navigation-drawer>
-    </v-card>
+    <div style="text-align: center;">
+      {{userInfo.roomName}}
+    </div>
     <v-container fluid style="padding: 0">
-      <v-row no-gutters justify="center">
+      <v-row>
+        <v-col sm="2">
+          <div class="namelist" style="text-align: center">
+            <div
+              class="username"
+              v-for="(username, index) in members"
+              v-bind:key="index"
+            >
+              [{{ index + 1 }}] {{ username }}
+            </div>
+          </div>
+        </v-col>
         <v-col sm="10" style="position: relative">
           <div class="chat-container">
             <div
@@ -29,12 +31,17 @@
             >
               <div
                 class="username"
-                v-if="index > 0 && messages[index - 1].user != message.user"
+                v-if="index > 0 && messages[index - 1].user != message.user && message.user === username"
               >
-                [{{ occupation }}] {{ message.user }}
+                [{{occupation}}]{{ message.user }}
+              </div>
+              <div
+                class = "username"
+                v-else-if="index > 0 && messages[index - 1].user != message.user">
+                {{ message.user }}
               </div>
               <div class="username" v-if="index == 0">
-                [{{ occupation }}] {{ message.user }}
+                {{ message.user }}
               </div>
               <div style="margin-top: 5px"></div>
               <div class="content" style="color: black">
@@ -64,6 +71,7 @@
 <script>
 // import Message from "@/components/message.vue";
 import { mapGetters, mapActions } from "vuex";
+import { getRoomMembers, gameStart } from "@/api/chat"
 
 export default {
   data() {
@@ -78,13 +86,20 @@ export default {
       occupation: "Visitor",
       text: "",
       blind: false,
+      members: [],
+      start: false,
     };
   },
   created() {
     console.log(this.userInfo);
+    this.getUserList()
     this.initWebSocket();
   },
   destroyed() {
+    let LeaveData = {};
+    LeaveData.type = "Logout";
+    LeaveData.data = this.username;
+    this.websock.send(JSON.stringify(LeaveData));
     this.websock.close();
     this.removeHost();
     console.log(this.userInfo);
@@ -108,13 +123,27 @@ export default {
   },
   methods: {
     ...mapActions("user", ["leaveRoomOut", "removeHost"]),
+    async getUserList() {
+      let data = {}
+      data['name'] = this.userInfo.roomName;
+      const res = await getRoomMembers(data);
+      console.log(res);
+      this.members = res.data;
+    },
     toHome() {
       this.$router.push({ name: "Home" });
     },
-    startGame() {},
+    async startGame() {
+      this.start = true;
+      let data = {};
+      data['name'] = this.userInfo.roomID;
+      const res = await gameStart(data);
+      this.members = res.data;
+      this.invalid = true;
+    },
     leave() {
-      var submitData = {};
-      submitData["name"] = this.userInfo.room;
+      let submitData = {};
+      submitData["name"] = this.userInfo.roomID;
       submitData["username"] = this.userInfo.username;
       this.leaveRoomOut(submitData);
       this.$router.push({ name: "Home" });
@@ -130,7 +159,7 @@ export default {
       console.log("Initing...");
       //初始化weosocket
       const wsuri =
-        "ws://10.21.142.235:8001/ws/chat/" + this.userInfo.room + "/";
+        "ws://10.21.142.235:8001/ws/chat/" + this.userInfo.roomID + "/";
       this.websock = new WebSocket(wsuri);
       this.websock.onmessage = this.websocketonmessage;
       this.websock.onopen = this.websocketonopen;
@@ -141,9 +170,12 @@ export default {
     },
     websocketonopen() {
       //连接建立之后执行send方法发送数据
-      // let actions = "Test Message";
+      let actions = {};
+      actions.type = "newLogin";
+      actions.data = this.username;
+      this.websock.send(JSON.stringify(actions));
       // this.websocketsend(JSON.stringify(actions));
-      console.log("Send succeed!");
+      // console.log("Send succeed!");
     },
     websocketonerror() {
       //连接建立失败重连
@@ -153,6 +185,7 @@ export default {
     websocketonmessage(e) {
       //数据接收
       const redata = JSON.parse(e.data);
+      console.log(redata)
       if (redata["type"] === "normal-content") {
         if (!this.blind) {
           this.chatMessages.push(redata);
@@ -162,12 +195,18 @@ export default {
           }
         }
       } else if (redata["type"] === "occupation-message") {
-        var occupations = redata["data"];
+        console.log("received occupation-message");
+        let occupations = redata["data"];
+        console.log(this.userInfo.username)
         this.occupation = occupations[this.userInfo.username];
-        self.text = "你的职业是：" + this.occupation;
-        self.snackbar = true;
+        this.text = "你的职业是：" + this.occupation;
+        this.messages.push({"user": "Occupation", "content": this.text});
+        this.start = true;
       } else if (redata["type"] === "control") {
-        if (this.occupation !== redata["data"]) {
+        if (redata["data"] === "daytime") {
+          this.invalid = true;
+          this.blind = false;
+        } else if (this.occupation !== redata["data"]) {
           this.invalid = true;
           this.blind = true;
         } else {
@@ -182,16 +221,40 @@ export default {
           this.invalid = true;
           this.blind = false;
         }
+      } else if (redata["type"] === "newLogin") {
+        if (this.members.indexOf(redata["data"]) === -1) {
+          this.members.push(redata["data"]);
+        }
+      } else if (redata['type'] === 'Logout') {
+        let index = this.members.indexOf(redata['data']);
+        if (index !== -1) {
+          this.members.splice(index, 1);
+        }
+      } else if (redata['type'] === 'free') {
+        this.invalid = false;
+        this.blind = false;
+      } else if (redata['type'] === 'Gameover') {
+        this.occupation = 'Visitor';
       }
     },
     websocketsend(Data) {
       //数据发送
       var processedData = this.processMessage(Data);
       var responseData = {};
-      responseData.content = processedData;
-      responseData.user = this.username;
+      if (Data[0] == "/" && Data[1] != '/' && this.start) {
+        var data2 = {};
+        data2.occupation = this.occupation;
+        data2.data = Data;
+        data2.name = this.username;
+        responseData.type = "game-control";
+        responseData.data = data2;
+      } else {
+        responseData.type = "normal-content";
+        responseData.content = processedData;
+        responseData.user = this.username;
+      }
       this.websock.send(JSON.stringify(responseData));
-      console.log("Data sent");
+      // console.log("Data sent");
     },
     websocketclose() {
       //关闭
@@ -255,7 +318,7 @@ export default {
 }
 .chat-container {
   box-sizing: border-box;
-  height: calc(100vh - 9.5rem);
+  height: calc(100vh - 10rem);
   overflow-y: auto;
   background-color: #222222;
   padding: 10px;

@@ -9,7 +9,8 @@ export const user = {
       email: '',
       IsAdmin: false,
       uuid: '',
-      room: '',
+      roomID: '',
+      roomName: '',
       isHost: false,
     },
     token: '',
@@ -28,8 +29,9 @@ export const user = {
       // 这里的 `state` 对象是模块的局部状态
       state.expiresAt = expiresAt
     },
-    setRoom(state, roomID) {
-      state.userInfo.room = roomID
+    setRoom(state, roomInfo) {
+      state.userInfo.roomID = roomInfo[0]
+      state.userInfo.roomName = roomInfo[1]
     },
     setHost(state) {
       state.userInfo.isHost = true;

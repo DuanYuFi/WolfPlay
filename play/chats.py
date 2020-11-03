@@ -3,12 +3,17 @@
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 import json
-from play.models import User, Room
+from play.models import User, Room, Game
 import time
+from time import sleep
 import uuid
 import random
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from play.game import PlayGame
+from multiprocessing import Process
+
+Games = {}
 
 def getRoomByUser(userName):
     '''
@@ -73,9 +78,15 @@ def getRoomMembers(request):
         return HttpResponse(json.dumps(responseData))
     
     thisRoom = Room.objects.filter(name = roomName)[0]
+    RoomMembers = json.loads(thisRoom.members)
+    member = []
+
+    for each in RoomMembers:
+        member.append(getUsername(each))
+
     responseData['code'] = 0
     responseData['msg'] = "ok"
-    responseData['data'] = thisRoom.members
+    responseData['data'] = member
 
     return HttpResponse(json.dumps(responseData))
 
@@ -140,19 +151,20 @@ def createRoom(request):
 
     if len(Room.objects.filter(name = post['name'])) != 0:
         responseData['code'] = 1
-        responseData['msg'] = "The Room Already Exist!"
+        responseData['msg'] = "房间已存在"
         responseData['data'] = ""
         return HttpResponse(json.dumps(responseData))
 
-    newRoom = Room(name = post['name'], host = getUserId(post['username']))
+    newRoom = Room(name = post['name'], host = getUserId(post['username']), password = post['password'])
     newRoom.save()
 
     addRoomMember(newRoom, newRoom.host)
+    newGame = Game(name = post['name'])
+    newGame.save()
 
-    
     responseData['code'] = 0
     responseData['msg'] = "ok"
-    responseData['data'] = str(newRoom.id)
+    responseData['data'] = (str(newRoom.id), newRoom.name)
 
     return HttpResponse(json.dumps(responseData))
 
@@ -166,12 +178,19 @@ def joinRoom(request):
     responseData = {}
     if len(Room.objects.filter(name = post['name'])) == 0:
         responseData['code'] = 1
-        responseData['msg'] = "Room not exist"
+        responseData['msg'] = "房间不存在"
         responseData['data'] = ""
         return HttpResponse(json.dumps(responseData))
     
     thisUser = User.objects.filter(name = post['username'])[0]
     thisRoom = Room.objects.filter(name = post['name'])[0]
+
+    if thisRoom.password != post['password']:
+        responseData['code'] = 1
+        responseData['msg'] = "密码错误"
+        responseData['data'] = ""
+        return HttpResponse(json.dumps(responseData))
+
     addRoomMember(thisRoom, thisUser.id)
     thisUser.roomNumber = thisRoom.id
 
@@ -179,7 +198,7 @@ def joinRoom(request):
 
     responseData['code'] = 0
     responseData['msg'] = "ok"
-    responseData['data'] = str(thisRoom.id)
+    responseData['data'] = [str(thisRoom.id), thisRoom.name]
 
     return HttpResponse(json.dumps(responseData))
 
@@ -195,68 +214,47 @@ def leaveRoom(request):
     deleteRoomMember(thisRoom, thisUser.id)
     thisUser.roomNumber = uuid.UUID("00000000-0000-0000-0000-000000000000")
     thisUser.save()
-
+    if Games[post['name']].is_alive():
+        Games[post['name']].terminate()
+        Games.pop(post['name'])
     if thisRoom.members == '[]':
         thisRoom.delete()
     responseData['code'] = 0
     responseData['msg'] = 'ok'
     return HttpResponse(json.dumps(responseData))
 
-def startGame(roomName):
+def startGame(request):
+    global Games
+    post = json.loads(request.body.decode('utf-8'))
+    post = json.loads(post)
 
-    thisRoom = Room.objects.filter(name = roomName)[0]
-    members = json.loads(thisRoom.members)
-    wolfs = []
-    hunter = ""
-    witch = ""
-    prophet = ""
-    villagers = []
-    # seperate = [number of wolf, number of villagers]
-    seperate = []
-    random.shuffle(members)
-    memberCount = len(members)
-    if memberCount == 2:
-        seperate = [1, 1]
-    if 6 <= memberCount <= 7:
-        seperate = [2, memberCount - 3]
-    elif memberCount <= 10:
-        seperate = [3, memberCount - 5]
-    else:
-        seperate = [4, memberCount - 7]
-    
-    wolfs = members[:seperate[0]]
-    villagers = members[seperate[0]:seperate[0] + seperate[1]]
-    if memberCount - seperate[0] - seperate[1] != 0:
-        witch = members[seperate[0] + seperate[1]]
-    if memberCount - (seperate[0] + seperate[1]) - 1 != 0:
-        prophet = members[seperate[0] + seperate[1] + 1]
-    if memberCount - (seperate[0] + seperate[1]) - 2 != 0:
-        hunter = members[-1]
-    
+    thisRoom = Room.objects.filter(id = post['name'])[0]
+    Games[post['name']] = PlayGame(thisRoom)
+
+    members = []
+    tmp = Games[post['name']].members
+    for each in tmp:
+        members.append(getUsername(each))
+    responseData = {}
+    responseData['code'] = 0
+    responseData['msg'] = "ok"
+    responseData['data'] = members
+    Games[post['name']].start()
+    # p = Process(target=test)
+    # p.start()
+    # print(responseData)
+    return HttpResponse(json.dumps(responseData))
+
+def test():
+    print("In Test")
+    group_name = "chat_49ae80b8-6717-4e6c-8ab2-2c0262315edd"
     channel_layer = get_channel_layer()
-    groupName = "chat_%s" % str(thisRoom.id)
-
-    occupation = {}
-    for each in members:
-        userName = getUsername(each)
-        if each in villagers:
-            occupation[userName] = '村民'
-        elif each in wolfs:
-            occupation[userName] = '狼人'
-        elif each == hunter:
-            occupation[userName] = '猎人'
-        elif each == witch:
-            occupation[userName] = '女巫'
-        elif each == prophet:
-            occupation[userName] = '预言家'
-    
     data = {}
-    data['type'] = 'occupation-message'
-    data['data'] = occupation
-    sendData = {}
-    sendData['type'] = 'sendMessage'
-    sendData['message'] = data
+    data['type'] = 'normal-content'
+    data['user'] = 'function'
+    data['content'] = 'Test'
 
-    async_to_sync(channel_layer.group_send)(groupName, sendData)
-
-
+    async_to_sync(channel_layer.group_send)(group_name, {
+        'type': 'sendMessage',
+        'message': data
+    })
