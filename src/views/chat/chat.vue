@@ -5,8 +5,14 @@
         {{ text }}
       </v-snackbar>
     </div>
-    <div style="text-align: center;">
-      {{userInfo.roomName}}
+    <div style="text-align: center">
+      {{ userInfo.roomName }}
+    </div>
+    <div style="text-align: center">
+      Your name: {{ username }}
+    </div>
+    <div v-if='occupation!="Visitor"' style="text-align: center">
+      Your career: {{ occupation }}
     </div>
     <v-container fluid style="padding: 0">
       <v-row>
@@ -31,13 +37,20 @@
             >
               <div
                 class="username"
-                v-if="index > 0 && messages[index - 1].user != message.user && message.user === username"
+                v-if="
+                  index > 0 &&
+                  messages[index - 1].user != message.user &&
+                  message.user === username
+                "
               >
-                [{{occupation}}]{{ message.user }}
+                [{{ occupation }}]{{ message.user }}
               </div>
               <div
-                class = "username"
-                v-else-if="index > 0 && messages[index - 1].user != message.user">
+                class="username"
+                v-else-if="
+                  index > 0 && messages[index - 1].user != message.user
+                "
+              >
                 {{ message.user }}
               </div>
               <div class="username" v-if="index == 0">
@@ -58,7 +71,7 @@
               v-model="content"
             />
             <v-spacer />
-            <div v-if="userInfo.isHost">
+            <div v-if="userInfo.isHost && !start">
               <v-btn @click="startGame"> Start Game </v-btn>
             </div>
           </div>
@@ -71,7 +84,7 @@
 <script>
 // import Message from "@/components/message.vue";
 import { mapGetters, mapActions } from "vuex";
-import { getRoomMembers, gameStart } from "@/api/chat"
+import { getRoomMembers, gameStart } from "@/api/chat";
 
 export default {
   data() {
@@ -91,8 +104,8 @@ export default {
     };
   },
   created() {
-    console.log(this.userInfo);
-    this.getUserList()
+    // console.log(this.userInfo);
+    this.getUserList();
     this.initWebSocket();
   },
   destroyed() {
@@ -102,7 +115,7 @@ export default {
     this.websock.send(JSON.stringify(LeaveData));
     this.websock.close();
     this.removeHost();
-    console.log(this.userInfo);
+    // console.log(this.userInfo);
     this.leave();
   },
   computed: {
@@ -124,11 +137,11 @@ export default {
   methods: {
     ...mapActions("user", ["leaveRoomOut", "removeHost"]),
     async getUserList() {
-      let data = {}
-      data['name'] = this.userInfo.roomName;
+      let data = {};
+      data["name"] = this.userInfo.roomName;
       const res = await getRoomMembers(data);
-      console.log(res);
-      this.members = res.data;
+      this.members = res["data"];
+      // console.log(res);
     },
     toHome() {
       this.$router.push({ name: "Home" });
@@ -136,7 +149,7 @@ export default {
     async startGame() {
       this.start = true;
       let data = {};
-      data['name'] = this.userInfo.roomID;
+      data["name"] = this.userInfo.roomID;
       const res = await gameStart(data);
       this.members = res.data;
       this.invalid = true;
@@ -150,7 +163,7 @@ export default {
     },
     sendMessage() {
       if (this.content != "") {
-        console.log(this.content);
+        // console.log(this.content);
         this.websocketsend(this.content);
         this.content = "";
       }
@@ -166,7 +179,7 @@ export default {
       this.websock.onerror = this.websocketonerror;
       this.websock.onclose = this.websocketclose;
       console.log("Websocket inited!");
-      console.log(this.websock);
+      // console.log(this.websock);
     },
     websocketonopen() {
       //连接建立之后执行send方法发送数据
@@ -185,28 +198,32 @@ export default {
     websocketonmessage(e) {
       //数据接收
       const redata = JSON.parse(e.data);
-      console.log(redata)
+      // console.log(redata)
       if (redata["type"] === "normal-content") {
-        if (!this.blind) {
+        if (!this.blind || redata["user"] === this.username) {
           this.chatMessages.push(redata);
-          console.log(redata);
-          if (redata.name === self.username) {
-            this.scrollToEnd();
-          }
+          // console.log(redata);
+          this.scrollToEnd();
         }
+      } else if (redata["type"] === "System") {
+        if (redata["to"] === "All" || redata["to"] === this.occupation)
+          this.chatMessages.push(redata);
+      } else if (redata["type"] === "members") {
+        this.members = redata["data"];
       } else if (redata["type"] === "occupation-message") {
-        console.log("received occupation-message");
+        // console.log("received occupation-message");
         let occupations = redata["data"];
-        console.log(this.userInfo.username)
+        // console.log(this.userInfo.username)
         this.occupation = occupations[this.userInfo.username];
         this.text = "你的职业是：" + this.occupation;
-        this.messages.push({"user": "Occupation", "content": this.text});
+        this.messages.push({ user: "Occupation", content: this.text });
         this.start = true;
       } else if (redata["type"] === "control") {
         if (redata["data"] === "daytime") {
           this.invalid = true;
           this.blind = false;
         } else if (this.occupation !== redata["data"]) {
+          this.sendMessage();
           this.invalid = true;
           this.blind = true;
         } else {
@@ -225,27 +242,37 @@ export default {
         if (this.members.indexOf(redata["data"]) === -1) {
           this.members.push(redata["data"]);
         }
-      } else if (redata['type'] === 'Logout') {
-        let index = this.members.indexOf(redata['data']);
+      } else if (redata["type"] === "Logout") {
+        let index = this.members.indexOf(redata["data"]);
         if (index !== -1) {
           this.members.splice(index, 1);
         }
-      } else if (redata['type'] === 'free') {
+      } else if (redata["type"] === "free") {
         this.invalid = false;
         this.blind = false;
-      } else if (redata['type'] === 'Gameover') {
-        this.occupation = 'Visitor';
+      } else if (redata["type"] === "Gameover") {
+        this.occupation = "Visitor";
+        this.start = false;
+      } else if (redata["type"] === "vote") {
+        this.blind = true;
+        this.invalid = false;
       }
     },
     websocketsend(Data) {
       //数据发送
       var processedData = this.processMessage(Data);
       var responseData = {};
-      if (Data[0] == "/" && Data[1] != '/' && this.start) {
+      if (Data[0] == "/" && Data[1] != "/" && this.start) {
         var data2 = {};
+        if (Data.substring(1, 5) === "vote") {
+          data2.type = "vote";
+        } else {
+          data2.type = "other";
+        }
         data2.occupation = this.occupation;
         data2.data = Data;
         data2.name = this.username;
+
         responseData.type = "game-control";
         responseData.data = data2;
       } else {
@@ -258,14 +285,7 @@ export default {
     },
     websocketclose() {
       //关闭
-      console.log("断开连接");
-    },
-    test() {
-      this.$nextTick(() => {
-        var container = this.$el.querySelector(".chat-container");
-        console.log(container.scrollTop);
-        console.log(container.scrollHeight);
-      });
+      // console.log("断开连接");
     },
     processMessage(message) {
       /*eslint-disable */

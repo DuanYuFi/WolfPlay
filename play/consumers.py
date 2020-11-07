@@ -3,6 +3,7 @@ from channels.exceptions import StopConsumer
 import json
 from asgiref.sync import async_to_sync
 import play.game
+from play.chats import addMessageToDatabase
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -18,6 +19,7 @@ class ChatConsumer(WebsocketConsumer):
         '''
         # print(self.room_group_name)
         data = json.loads(text_data)
+        addMessageToDatabase(data, self.roomname)
         if data['type'] == 'normal-content' or data['type'] == 'newLogin' or data['type'] == 'Logout':
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name, 

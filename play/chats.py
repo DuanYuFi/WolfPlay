@@ -23,36 +23,6 @@ def getRoomByUser(userName):
     roomID = thisUser.roomNumber
     return Room.objects.filter(id = roomID)[0]
 
-def sendMessage(request):
-    '''
-        requery:
-            struct of data
-            data {
-                name: string, 
-                content: string,
-                time: string
-            }
-        return:
-            responseData {
-                code: int, 
-            }
-    '''
-    post = json.loads(request.body.decode('utf-8'))
-    post = json.loads(post)
-    thisRoom = getRoomByUser(post['name'])
-    thisContent = {}
-    thisContent['content'] = post['content']
-    thisContent['user'] = post['name']
-    localtime = post['time']
-    thisContent['time'] = localtime
-    thisRoomChat = json.loads(thisRoom.chats)
-    thisRoomChat.append(thisContent)
-    thisRoom.chats = json.dumps(thisRoomChat)
-    thisRoom.save()
-    responseData = {}
-    responseData['code'] = 0
-    return HttpResponse(json.dumps(responseData))
-
 def getRoomMembers(request):
     '''
         requery:
@@ -159,8 +129,6 @@ def createRoom(request):
     newRoom.save()
 
     addRoomMember(newRoom, newRoom.host)
-    newGame = Game(name = post['name'])
-    newGame.save()
 
     responseData['code'] = 0
     responseData['msg'] = "ok"
@@ -214,11 +182,12 @@ def leaveRoom(request):
     deleteRoomMember(thisRoom, thisUser.id)
     thisUser.roomNumber = uuid.UUID("00000000-0000-0000-0000-000000000000")
     thisUser.save()
-    if Games[post['name']].is_alive():
-        Games[post['name']].terminate()
+
+    if post['name'] in Games:
         Games.pop(post['name'])
     if thisRoom.members == '[]':
         thisRoom.delete()
+        
     responseData['code'] = 0
     responseData['msg'] = 'ok'
     return HttpResponse(json.dumps(responseData))
@@ -231,14 +200,10 @@ def startGame(request):
     thisRoom = Room.objects.filter(id = post['name'])[0]
     Games[post['name']] = PlayGame(thisRoom)
 
-    members = []
-    tmp = Games[post['name']].members
-    for each in tmp:
-        members.append(getUsername(each))
     responseData = {}
     responseData['code'] = 0
     responseData['msg'] = "ok"
-    responseData['data'] = members
+    responseData['data'] = ""
     Games[post['name']].start()
     # p = Process(target=test)
     # p.start()
@@ -258,3 +223,10 @@ def test():
         'type': 'sendMessage',
         'message': data
     })
+
+def addMessageToDatabase(message, roomID):
+    thisRoom = Room.objects.filter(id = roomID)[0]
+    chats = json.loads(thisRoom.chats)
+    chats.append(message)
+    thisRoom.chats = json.dumps(chats)
+    thisRoom.save()
